@@ -1,0 +1,34 @@
+[package]
+name = "nebu"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+clap = { workspace = true, features = [
+    "cargo",
+    "color",
+    "derive",
+    "env",
+    "error-context",
+    "help",
+    "string",
+    "suggestions",
+    "usage",
+] }
+clap-cargo = { workspace = true, features = ["clap"] }
+dialoguer = { workspace = true }
+git2 = { workspace = true }
+owo-colors = { workspace = true, features = ["supports-colors"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+schemars = { workspace = true, features = ["derive"], optional = true }
+
+[features]
+default = ["schema"]
+schema = ["dep:schemars"]
