@@ -59,7 +59,7 @@ impl From<VersionInfo> for clap::builder::Str {
 
 pub(crate) fn nebu_version() -> VersionInfo {
     let commit_info = option_env!("NEBU_COMMIT_HASH").map(|hash| CommitInfo {
-        hash: hash,
+        hash,
         short_hash: option_env!("NEBU_COMMIT_SHORT_HASH").unwrap(),
         date: option_env!("NEBU_COMMIT_DATE").unwrap(),
         commit_tag_info: option_env!("NEBU_LAST_TAG").map(|last_tag| CommitTagInfo {
