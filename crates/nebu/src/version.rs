@@ -1,5 +1,6 @@
 use std::fmt;
 
+use owo_colors::OwoColorize;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -26,7 +27,7 @@ pub(crate) struct CommitInfo {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub(crate) struct CommitTagInfo {
     pub(crate) last_tag: &'static str,
-    pub(crate) commits_since: Option<&'static str>,
+    pub(crate) commits_since: &'static str,
 }
 
 impl fmt::Display for CommitInfo {
@@ -38,20 +39,13 @@ impl fmt::Display for CommitInfo {
 
 impl fmt::Display for VersionInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "CLI Version:\t{}\n", self.version)?;
+        write!(f, "{}", self.version.blue())?;
         if let Some(commit_info) = &self.commit_info {
+            write!(f, " {} (", commit_info.date.cyan())?;
             if let Some(tag_info) = &commit_info.commit_tag_info {
-                write!(f, "Latest tag:\t{}", tag_info.last_tag)?;
-
-                if let Some(commits_since) = tag_info.commits_since {
-                    write!(f, "+{}", commits_since)?;
-                }
-
-                write!(f, "\n")?;
+                write!(f, "{}+{}", tag_info.last_tag, tag_info.commits_since)?;
             }
-
-            write!(f, "Commit hash:\t{}\n", commit_info.short_hash)?;
-            write!(f, "Commit date:\t{}\n", commit_info.date)?;
+            write!(f, " {})", commit_info.short_hash.green())?;
         }
         Ok(())
     }
@@ -66,11 +60,11 @@ impl From<VersionInfo> for clap::builder::Str {
 pub(crate) fn nebu_version() -> VersionInfo {
     let commit_info = option_env!("NEBU_COMMIT_HASH").map(|hash| CommitInfo {
         hash: hash,
-        short_hash: option_env!("NEBU_SHORT_HASH").unwrap(),
+        short_hash: option_env!("NEBU_COMMIT_SHORT_HASH").unwrap(),
         date: option_env!("NEBU_COMMIT_DATE").unwrap(),
         commit_tag_info: option_env!("NEBU_LAST_TAG").map(|last_tag| CommitTagInfo {
             last_tag,
-            commits_since: option_env!("NEBU_LAST_TAG_DISTANCE"),
+            commits_since: option_env!("NEBU_LAST_TAG_DISTANCE").unwrap(),
         }),
     });
 
