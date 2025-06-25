@@ -4,10 +4,10 @@ use clap::{crate_authors, crate_version, ArgAction, Parser, Subcommand, ValueEnu
 use clap_cargo::style::CLAP_STYLING;
 
 #[derive(Parser)]
-#[command(name = "Lerpz CLI", author = crate_authors!(), version = crate_version!())]
+#[command(name = "nebu", author = crate_authors!(), version = crate_version!())]
 #[command(about = "A command-line interface for Lerpz")]
 #[command(after_help = "For more information, visit https://github.com/lerpz-com")]
-#[command(bin_name = "lerpz")]
+#[command(bin_name = "nebu")]
 #[command(styles = CLAP_STYLING)]
 struct Cli {
     #[command(subcommand)]
@@ -20,7 +20,7 @@ struct Cli {
 #[derive(Subcommand)]
 #[command(next_help_heading = "Commands", next_display_order = 1)]
 enum Commands {
-    /// Show the version of the Lerpz CLI
+    /// Show the version of the Nebu CLI
     Version,
 }
 
@@ -79,7 +79,7 @@ fn main() {
             }
         },
         None => {
-            println!("{} {}", "lerpz", version::nebu_version());
+            println!("{}", version::nebu_version());
         }
     }
 }

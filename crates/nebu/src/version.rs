@@ -25,7 +25,7 @@ pub(crate) struct CommitInfo {
 #[derive(Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub(crate) struct CommitTagInfo {
-    pub(crate) tag: &'static str,
+    pub(crate) last_tag: &'static str,
     pub(crate) commits_since: Option<&'static str>,
 }
 
@@ -41,7 +41,7 @@ impl fmt::Display for VersionInfo {
         write!(f, "CLI Version:\t{}\n", self.version)?;
         if let Some(commit_info) = &self.commit_info {
             if let Some(tag_info) = &commit_info.commit_tag_info {
-                write!(f, "Latest tag:\t{}", tag_info.tag)?;
+                write!(f, "Latest tag:\t{}", tag_info.last_tag)?;
 
                 if let Some(commits_since) = tag_info.commits_since {
                     write!(f, "+{}", commits_since)?;
@@ -64,22 +64,18 @@ impl From<VersionInfo> for clap::builder::Str {
 }
 
 pub(crate) fn nebu_version() -> VersionInfo {
-    let commit_info = CommitInfo {
-        hash: env!("NEBU_COMMIT_HASH"),
-        short_hash: env!("NEBU_COMMIT_SHORT_HASH"),
-        date: env!("NEBU_COMMIT_DATE"),
-        commit_tag_info: if let Some(last_tag) = option_env!("NEBU_LAST_TAG") {
-            Some(CommitTagInfo {
-                tag: last_tag,
-                commits_since: option_env!("NEBU_LAST_TAG_DISTANCE"),
-            })
-        } else {
-            None
-        },
-    };
+    let commit_info = option_env!("NEBU_COMMIT_HASH").map(|hash| CommitInfo {
+        hash: hash,
+        short_hash: option_env!("NEBU_SHORT_HASH").unwrap(),
+        date: option_env!("NEBU_COMMIT_DATE").unwrap(),
+        commit_tag_info: option_env!("NEBU_LAST_TAG").map(|last_tag| CommitTagInfo {
+            last_tag,
+            commits_since: option_env!("NEBU_LAST_TAG_DISTANCE"),
+        }),
+    });
 
     VersionInfo {
         version: env!("CARGO_PKG_VERSION").into(),
-        commit_info: Some(commit_info),
+        commit_info: commit_info,
     }
 }
