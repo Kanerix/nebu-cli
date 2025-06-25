@@ -53,23 +53,28 @@ impl fmt::Display for VersionInfo {
 
 impl From<VersionInfo> for clap::builder::Str {
     fn from(value: VersionInfo) -> Self {
-        value.into()
+        value.to_string().into()
     }
 }
 
 pub(crate) fn nebu_version() -> VersionInfo {
-    let commit_info = option_env!("NEBU_COMMIT_HASH").map(|hash| CommitInfo {
-        hash,
-        short_hash: option_env!("NEBU_COMMIT_SHORT_HASH").unwrap(),
-        date: option_env!("NEBU_COMMIT_DATE").unwrap(),
-        commit_tag_info: option_env!("NEBU_LAST_TAG").map(|last_tag| CommitTagInfo {
-            last_tag,
-            commits_since: option_env!("NEBU_LAST_TAG_DISTANCE").unwrap(),
-        }),
-    });
+    let commit_info = option_env!("NEBU_COMMIT_HASH")
+        .zip(option_env!("NEBU_COMMIT_SHORT_HASH"))
+        .zip(option_env!("NEBU_COMMIT_DATE"))
+        .map(|((hash, short_hash), date)| CommitInfo {
+            hash,
+            short_hash,
+            date,
+            commit_tag_info: option_env!("NEBU_LAST_TAG")
+                .zip(option_env!("NEBU_LAST_TAG_DISTANCE"))
+                .map(|(last_tag, commits_since)| CommitTagInfo {
+                    last_tag,
+                    commits_since,
+                }),
+        });
 
     VersionInfo {
-        version: env!("CARGO_PKG_VERSION").into(),
-        commit_info: commit_info,
+        version: env!("CARGO_PKG_VERSION"),
+        commit_info,
     }
 }

@@ -1,3 +1,5 @@
+#![allow(clippy::print_literal)]
+
 use std::{
     fs,
     path::{Path, PathBuf},

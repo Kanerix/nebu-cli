@@ -32,11 +32,7 @@ enum Commands {
     /// Show the version of the CLI
     Version,
     /// Environment specific subcommands
-    #[command(
-        after_help = "Use `nebu help env` for more details.",
-        after_long_help = ""
-    )]
-    Env(Box<cmds::env::EnvCmds>),
+    Env(cmds::env::Env),
 }
 
 #[derive(clap::Parser, Debug)]
@@ -107,8 +103,9 @@ fn main() {
                 let out =
                     serde_json::to_string_pretty(&schema).expect("Failed to serialize JSON schema");
                 println!("{}", out)
-            }
+            },
         },
+        Some(Commands::Env(_env)) => todo!(),
         None => {
             println!("{}", cmds::version::nebu_version());
         }
