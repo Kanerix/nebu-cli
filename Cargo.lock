@@ -632,7 +632,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nebu-cli"
+name = "nebu-config"
 version = "0.1.0"
 
 [[package]]

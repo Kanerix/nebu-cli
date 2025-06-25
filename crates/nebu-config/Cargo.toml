@@ -1,5 +1,5 @@
 [package]
-name = "nebu-cli"
+name = "nebu-config"
 edition = "2024"
 version.workspace = true
 

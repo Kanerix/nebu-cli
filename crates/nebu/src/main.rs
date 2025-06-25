@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::ExitCode};
 
 use clap::{Parser, crate_authors, crate_version};
 use clap_cargo::style::CLAP_STYLING;
@@ -15,7 +15,6 @@ mod cmds;
     disable_version_flag = true,
     disable_help_subcommand = true,
     styles = CLAP_STYLING,
-    bin_name = "nebu"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -23,7 +22,7 @@ struct Cli {
 
     /// Global arguments for all commands
     #[command(flatten)]
-    pub global_args: Box<GlobalArgs>,
+    global_args: Box<GlobalArgs>,
 }
 
 #[derive(clap::Subcommand)]
@@ -31,8 +30,20 @@ struct Cli {
 enum Commands {
     /// Show the version of the CLI
     Version,
-    /// Environment specific subcommands
+    /// Environment subcommands
+    /// 
+    /// Can be used to check the environment configuration or perform other
+    /// environment-related tasks.
     Env(cmds::env::Env),
+    /// Project subcommands
+    /// 
+    /// Creates new project, manage existing projects, or perform
+    /// project-related tasks.
+    Project(cmds::project::Project),
+    /// Infrastructure subcommands
+    /// 
+    /// Manage infrastructure resources, such as key vaults, databases and more.
+    Infra,
 }
 
 #[derive(clap::Parser, Debug)]
@@ -52,7 +63,7 @@ struct GlobalArgs {
         env = "NEBU_CONFIG_PATH",
         default_value = "~/.config/nebu/config.toml"
     )]
-    pub config_file: PathBuf,
+    config_file: PathBuf,
 
     #[arg(
         global = true,
@@ -61,7 +72,15 @@ struct GlobalArgs {
         env = "NEBU_HOME_PATH",
         default_value = "~/.nebu"
     )]
-    pub home_path: PathBuf,
+    home_path: PathBuf,
+
+    #[arg(
+        global = true,
+        short = 'v',
+        env = "NEBU_VERBOSE",
+        action = clap::ArgAction::Count,
+    )]
+    verbose: u8
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -84,7 +103,7 @@ impl From<OutputFormats> for clap::builder::OsStr {
     }
 }
 
-fn main() {
+fn main() -> ExitCode {
     let cli = Cli::parse();
 
     match &cli.command {
@@ -106,8 +125,10 @@ fn main() {
             },
         },
         Some(Commands::Env(_env)) => todo!(),
-        None => {
-            println!("{}", cmds::version::nebu_version());
-        }
+        Some(Commands::Project(_project)) => todo!(),
+        Some(Commands::Infra) => todo!(),
+        None => todo!(), // Make a decision on what the default command should be.
     }
+
+    ExitCode::SUCCESS
 }
