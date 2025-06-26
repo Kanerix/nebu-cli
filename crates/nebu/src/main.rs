@@ -61,9 +61,9 @@ struct GlobalArgs {
         global = true,
         long,
         env = "NEBU_CONFIG_PATH",
-        default_value = "~/.config/nebu/config.toml"
+        default_value = "~/.config/nebu"
     )]
-    config_file: PathBuf,
+    config_path: PathBuf,
 
     #[arg(
         global = true,
