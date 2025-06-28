@@ -3,6 +3,8 @@ use std::fmt;
 use owo_colors::OwoColorize;
 use serde::Serialize;
 
+use crate::{OutputFormats, cmds};
+
 #[derive(Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub(crate) struct VersionInfo {
@@ -57,7 +59,8 @@ impl From<VersionInfo> for clap::builder::Str {
     }
 }
 
-pub(crate) fn nebu_version() -> VersionInfo {
+pub(crate) fn nebu_version(global_args: Box<crate::GlobalArgs>) {
+    tracing::trace!("reading version information from build variables");
     let commit_info = option_env!("NEBU_COMMIT_HASH")
         .zip(option_env!("NEBU_COMMIT_SHORT_HASH"))
         .zip(option_env!("NEBU_COMMIT_DATE"))
@@ -73,8 +76,28 @@ pub(crate) fn nebu_version() -> VersionInfo {
                 }),
         });
 
-    VersionInfo {
+    let version_info = VersionInfo {
         version: env!("CARGO_PKG_VERSION"),
         commit_info,
+    };
+
+    tracing::trace!("creating output for version information");
+
+    match global_args.format {
+        OutputFormats::Json => {
+            let out = serde_json::to_string_pretty(&version_info)
+                .expect("Failed to serialize version info to JSON");
+            println!("{}", out);
+        }
+        OutputFormats::Text => {
+            println!("{}", version_info);
+        }
+        #[cfg(feature = "schema")]
+        OutputFormats::JsonSchema => {
+            let schema = schemars::schema_for!(cmds::version::VersionInfo);
+            let out = serde_json::to_string_pretty(&schema)
+                .expect("Failed to serialize JSON schema");
+            println!("{}", out)
+        }
     }
 }

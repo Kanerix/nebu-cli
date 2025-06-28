@@ -2,7 +2,7 @@ use std::{path::PathBuf, process::ExitCode};
 
 use clap::{Parser, crate_authors, crate_version};
 use clap_cargo::style::CLAP_STYLING;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::EnvFilter;
 
 mod cmds;
 
@@ -32,17 +32,17 @@ enum Commands {
     /// Show the version of the CLI
     Version,
     /// Environment subcommands
-    /// 
+    ///
     /// Can be used to check the environment configuration or perform other
     /// environment-related tasks.
     Env(cmds::env::Env),
     /// Project subcommands
-    /// 
+    ///
     /// Creates new project, manage existing projects, or perform
     /// project-related tasks.
     Project(cmds::project::Project),
     /// Infrastructure subcommands
-    /// 
+    ///
     /// Manage infrastructure resources, such as key vaults, databases and more.
     Infra,
 }
@@ -81,7 +81,7 @@ struct GlobalArgs {
         env = "NEBU_VERBOSE",
         action = clap::ArgAction::Count,
     )]
-    verbose: u8
+    verbose: u8,
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -107,8 +107,10 @@ impl From<OutputFormats> for clap::builder::OsStr {
 fn main() -> ExitCode {
     let cli = Cli::parse();
 
-    tracing_subscriber::registry()
-        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+    tracing_subscriber::fmt()
+        .without_time()
+        .with_target(false)
+        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
             match cli.global_args.verbose {
                 0 => EnvFilter::from("none"),
                 1 => EnvFilter::from("nebu=info"),
@@ -116,32 +118,15 @@ fn main() -> ExitCode {
                 _ => EnvFilter::from("nebu=trace"),
             }
         }))
-        .with(tracing_subscriber::fmt::layer())
         .init();
 
     match &cli.command {
-        Some(Commands::Version) => match cli.global_args.format {
-            OutputFormats::Json => {
-                let out = serde_json::to_string_pretty(&cmds::nebu_version())
-                    .expect("Failed to serialize version info to JSON");
-                tracing::info!("{}", out)
-            }
-            OutputFormats::Text => {
-                tracing::info!("{}", cmds::nebu_version())
-            }
-            #[cfg(feature = "schema")]
-            OutputFormats::JsonSchema => {
-                let schema = schemars::schema_for!(cmds::version::VersionInfo);
-                let out =
-                    serde_json::to_string_pretty(&schema).expect("Failed to serialize JSON schema");
-                tracing::info!("{}", out)
-            },
-        },
+        Some(Commands::Version) => cmds::version::nebu_version(cli.global_args),
         Some(Commands::Env(_env)) => todo!(),
         Some(Commands::Project(_project)) => todo!(),
         Some(Commands::Infra) => todo!(),
         None => todo!(), // Make a decision on what the default command should be.
-    }
+    };
 
     ExitCode::SUCCESS
 }
