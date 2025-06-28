@@ -2,6 +2,7 @@ use std::{path::PathBuf, process::ExitCode};
 
 use clap::{Parser, crate_authors, crate_version};
 use clap_cargo::style::CLAP_STYLING;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 mod cmds;
 
@@ -106,22 +107,34 @@ impl From<OutputFormats> for clap::builder::OsStr {
 fn main() -> ExitCode {
     let cli = Cli::parse();
 
+    tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            match cli.global_args.verbose {
+                0 => EnvFilter::from("none"),
+                1 => EnvFilter::from("nebu=info"),
+                2 => EnvFilter::from("nebu=debug"),
+                _ => EnvFilter::from("nebu=trace"),
+            }
+        }))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     match &cli.command {
         Some(Commands::Version) => match cli.global_args.format {
             OutputFormats::Json => {
                 let out = serde_json::to_string_pretty(&cmds::nebu_version())
                     .expect("Failed to serialize version info to JSON");
-                println!("{}", out)
+                tracing::info!("{}", out)
             }
             OutputFormats::Text => {
-                println!("{}", cmds::nebu_version())
+                tracing::info!("{}", cmds::nebu_version())
             }
             #[cfg(feature = "schema")]
             OutputFormats::JsonSchema => {
                 let schema = schemars::schema_for!(cmds::version::VersionInfo);
                 let out =
                     serde_json::to_string_pretty(&schema).expect("Failed to serialize JSON schema");
-                println!("{}", out)
+                tracing::info!("{}", out)
             },
         },
         Some(Commands::Env(_env)) => todo!(),
