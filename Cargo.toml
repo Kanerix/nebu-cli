@@ -5,10 +5,10 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.87.0"
+rust-version = "1.88.0"
+license = "MIT"
 homepage = "https://github.com/lerpz-com"
 documentation = "https://github.com/lerpz-com"
-license = "MIT"
 repository = "https://github.com/lerpz-com/nebu-cli"
 authors = ["Kanerix <kas@lerpz.com>"]
 
