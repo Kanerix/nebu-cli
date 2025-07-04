@@ -10,6 +10,8 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+nebu-cache = { workspace = true }
+
 clap = { workspace = true, features = [
     "cargo",
     "color",
@@ -24,6 +26,8 @@ clap = { workspace = true, features = [
 clap-cargo = { workspace = true, features = ["clap"] }
 dialoguer = { workspace = true }
 git2 = { workspace = true }
+miette = { workspace = true }
+nanoid = { workspace = true }
 owo-colors = { workspace = true, features = ["supports-colors"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

@@ -45,9 +45,9 @@ impl fmt::Display for VersionInfo {
         if let Some(commit_info) = &self.commit_info {
             write!(f, " {} (", commit_info.date.cyan())?;
             if let Some(tag_info) = &commit_info.commit_tag_info {
-                write!(f, "{}+{}", tag_info.last_tag, tag_info.commits_since)?;
+                write!(f, "{}+{} ", tag_info.last_tag, tag_info.commits_since)?;
             }
-            write!(f, " {})", commit_info.short_hash.green())?;
+            write!(f, "{})", commit_info.short_hash.green())?;
         }
         Ok(())
     }
@@ -59,8 +59,10 @@ impl From<VersionInfo> for clap::builder::Str {
     }
 }
 
-pub(crate) fn nebu_version(global_args: Box<crate::GlobalArgs>) {
+pub(crate) fn run(global_args: Box<crate::GlobalArgs>) {
+    tracing::trace!("running version command");
     tracing::trace!("reading version information from build variables");
+
     let commit_info = option_env!("NEBU_COMMIT_HASH")
         .zip(option_env!("NEBU_COMMIT_SHORT_HASH"))
         .zip(option_env!("NEBU_COMMIT_DATE"))

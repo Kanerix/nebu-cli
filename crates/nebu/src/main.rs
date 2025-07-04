@@ -51,10 +51,10 @@ enum Commands {
 #[command(next_help_heading = "Global options", next_display_order = 1000)]
 struct GlobalArgs {
     /// Output format for the command results.
-    /// 
+    ///
     /// This is not supported by all commands, but the CLI will attempt to
     /// format the output in the specified format if possible.
-    /// 
+    ///
     /// This does not error if the format is not supported by the command.
     #[arg(
         global = true,
@@ -67,7 +67,7 @@ struct GlobalArgs {
     format: OutputFormats,
 
     /// A path to the configuration file for nebu.
-    /// 
+    ///
     /// This will default to `~/.config/nebu` if not specified.
     #[arg(
         global = true,
@@ -101,6 +101,10 @@ struct GlobalArgs {
     /// - 1: Info level output
     /// - 2: Debug level output
     /// - 3: Trace level output
+    /// 
+    /// This uses the `RUST_LOG` environment variable to set the logging level.
+    /// That means if the `RUST_LOG` environment variable is set, it will override
+    /// the verbosity level set by this argument.
     #[arg(
         global = true,
         help = "Enable verbose output. Use multiple times for more verbosity.",
@@ -147,10 +151,18 @@ async fn main() -> ExitCode {
         }))
         .init();
 
-    match &cli.command {
-        Commands::Version => cmds::version::nebu_version(cli.global_args),
+    if std::env::var("RUST_LOG").is_ok() && cli.global_args.verbose > 0 {
+        tracing::warn!(
+            "RUST_LOG environment variable is set, this will override the \
+            verbosity level set by the -v flag."
+        );
+    }
+
+    use cmds::*;
+    match cli.command {
+        Commands::Version => version::run(cli.global_args),
         Commands::Env(_env) => todo!(),
-        Commands::Project(_project) => todo!(),
+        Commands::Project(project) => project::run(project, cli.global_args),
         Commands::Infra => todo!(),
     };
 

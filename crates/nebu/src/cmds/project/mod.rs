@@ -1,3 +1,7 @@
+use super::project;
+
+mod init;
+
 #[derive(clap::Args)]
 pub(crate) struct Project {
     #[command(subcommand)]
@@ -20,7 +24,13 @@ pub(crate) struct ProjectArgs {
         short,
         long,
         env = "NEBU_TEMPLATE_REPO",
-        default_value = "https://github.com/lerpz-com/nebu-template.git",
+        default_value = "https://github.com/lerpz-com/nebu-template.git"
     )]
     pub template_repo: String,
+}
+
+pub fn run(project: Project, global_args: Box<crate::GlobalArgs>) {
+    match project.command {
+        ProjectCmds::Init => project::init::run(global_args, project.args),
+    }
 }
