@@ -38,7 +38,7 @@ enum Commands {
     Env(cmds::env::Env),
     /// Project subcommands
     ///
-    /// Creates new project, manage existing projects, or perform
+    /// Creates new project, manage existing projects, or perform other
     /// project-related tasks.
     Project(cmds::project::Project),
     /// Infrastructure subcommands
@@ -50,6 +50,12 @@ enum Commands {
 #[derive(clap::Parser, Debug)]
 #[command(next_help_heading = "Global options", next_display_order = 1000)]
 struct GlobalArgs {
+    /// Output format for the command results.
+    /// 
+    /// This is not supported by all commands, but the CLI will attempt to
+    /// format the output in the specified format if possible.
+    /// 
+    /// This does not error if the format is not supported by the command.
     #[arg(
         global = true,
         help = "Output format for the command results.",
@@ -60,6 +66,9 @@ struct GlobalArgs {
     )]
     format: OutputFormats,
 
+    /// A path to the configuration file for nebu.
+    /// 
+    /// This will default to `~/.config/nebu` if not specified.
     #[arg(
         global = true,
         help = "Path to the configuration file for nebu.",
@@ -69,6 +78,9 @@ struct GlobalArgs {
     )]
     config_path: PathBuf,
 
+    /// A path to the home directory for nebu.
+    ///     
+    /// This will default to `~/.nebu` if not specified.
     #[arg(
         global = true,
         help = "Path to the home directory for nebu.",
@@ -79,6 +91,16 @@ struct GlobalArgs {
     )]
     home_path: PathBuf,
 
+    /// Enable verbose output.
+    ///
+    /// This will enable more detailed logging output, which can be useful for
+    /// debugging. The maximum verbosity is level 3 (TRACE).
+    ///
+    /// ### Levels:
+    /// - 0: No verbose output
+    /// - 1: Info level output
+    /// - 2: Debug level output
+    /// - 3: Trace level output
     #[arg(
         global = true,
         help = "Enable verbose output. Use multiple times for more verbosity.",
