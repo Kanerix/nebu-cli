@@ -24,7 +24,7 @@ pub(crate) struct ProjectArgs {
         short,
         long,
         env = "NEBU_TEMPLATE_REPO",
-        default_value = "https://github.com/lerpz-com/nebu-template.git"
+        default_value = "https://github.com/Kanerix/nebu-cli.git"
     )]
     pub template_repo: String,
 }
