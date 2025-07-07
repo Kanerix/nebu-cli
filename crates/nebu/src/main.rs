@@ -1,10 +1,8 @@
-use std::{path::PathBuf, process::ExitCode};
+use std::path::PathBuf;
 
 use clap::{Parser, crate_authors, crate_version};
 use clap_cargo::style::CLAP_STYLING;
 use tracing_subscriber::EnvFilter;
-
-use crate::error::CommandError;
 
 mod cmds;
 mod error;
@@ -138,7 +136,7 @@ impl From<OutputFormats> for clap::builder::OsStr {
 }
 
 #[tokio::main]
-async fn main() -> ExitCode {
+async fn main() -> miette::Result<()> {
     let cli = Cli::parse();
 
     tracing_subscriber::fmt()
@@ -160,18 +158,16 @@ async fn main() -> ExitCode {
         );
     }
 
-    let res = match cli.command {
+    let result = match cli.command {
         Commands::Version => cmds::version::run(cli.global_args),
         Commands::Env(_env) => todo!(),
         Commands::Project(project) => cmds::project::run(project, cli.global_args),
         Commands::Infra => todo!(),
     };
 
-    if let Err(err) = res {
-        tracing::error!("command failed: {}", err);
-        eprintln!("{:?}", err);
-        return ExitCode::FAILURE; 
-    }
+    if let Err(err) = result {
+        return Err(err.into())
+    };
 
-    ExitCode::SUCCESS
+    Ok(())
 }

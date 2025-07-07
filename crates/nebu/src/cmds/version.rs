@@ -59,7 +59,7 @@ impl From<VersionInfo> for clap::builder::Str {
     }
 }
 
-pub(crate) fn run(global_args: Box<crate::GlobalArgs>) -> crate::error::Result {
+pub(crate) fn run(global_args: Box<crate::GlobalArgs>) -> crate::error::CommandResult {
     tracing::trace!("running version command");
     tracing::trace!("reading version information from build variables");
 

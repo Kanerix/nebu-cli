@@ -1,9 +1,7 @@
-use std::process::ExitCode;
-
-use miette::{Diagnostic, SourceSpan};
+use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
-pub(crate) type Result<T = ()> = miette::Result<T>;
+pub(crate) type CommandResult<T = ()> = miette::Result<T, CommandError>;
 
 #[derive(Error, Diagnostic, Debug)]
 #[error("command failed with exit code {}", exit_code)]
@@ -23,12 +21,9 @@ pub(crate) struct CommandError {
     #[source]
     #[diagnostic_source]
     source: CommandErrorKind,
-    /// The command that was executed.
-    #[diagnostic(transparent)]
-    command: Option<String>,
     /// The source code where the command was executed.
     #[source_code]
-    source_code: Option<String>,
+    source_code: Option<NamedSource<String>>,
     /// The part of the source code that caused the failure.
     #[label("this part of the command failed")]
     source_span: Option<SourceSpan>,
@@ -41,23 +36,20 @@ pub(crate) struct CommandError {
 
 #[derive(Error, Diagnostic, Debug)]
 pub(crate) enum CommandErrorKind {
-    #[error("invalid argument: {arg}")]
+    /// Something is wrong with the command arguments.
+    #[error("invalid argument: {arg}={value}")]
     #[diagnostic(
         code(command::invalid_argument),
-        help("Check the argument and ensure it is valid")
+        help("Check the argument and ensure it is valid"),
+        url("https://nebu.lerpz.com/docs/cli/commands#arguments")
     )]
     InvalidArgument {
         arg: String,
+        value: String,
         #[label("invalid argument")]
         span: Option<SourceSpan>,
     },
-    #[error("Permission denied")]
-    #[diagnostic(
-        code(command::permission_denied),
-        help("Try running with elevated privileges or check file permissions")
-    )]
-    PermissionDenied,
-
+    /// All other errors that do not fit into a specific category.
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
@@ -67,7 +59,6 @@ impl CommandError {
         Self {
             exit_code,
             source: source.into(),
-            command: None,
             source_code: None,
             source_span: None,
             related: Vec::new(),
@@ -78,17 +69,13 @@ impl CommandError {
         self.exit_code
     }
 
-    pub(crate) fn with_command(mut self, command: impl Into<String>) -> Self {
-        self.command = Some(command.into());
-        self
-    }
-
     pub(crate) fn with_source_context(
         mut self,
+        name: impl Into<String>,
         code: impl Into<String>,
         span: impl Into<SourceSpan>,
     ) -> Self {
-        self.source_code = Some(code.into());
+        self.source_code = Some(NamedSource::new(name.into(), code.into()));
         self.source_span = Some(span.into());
         self
     }

@@ -29,7 +29,7 @@ pub(crate) struct ProjectArgs {
     pub template_repo: String,
 }
 
-pub fn run(project: Project, global_args: Box<crate::GlobalArgs>) -> crate::error::Result {
+pub fn run(project: Project, global_args: Box<crate::GlobalArgs>) -> crate::error::CommandResult {
     match project.command {
         ProjectCmds::Init => project::init::run(global_args, project.args),
     }

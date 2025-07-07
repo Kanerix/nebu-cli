@@ -28,7 +28,7 @@ clap-cargo = { workspace = true, features = ["clap"] }
 dialoguer = { workspace = true }
 git2 = { workspace = true }
 home = { workspace = true }
-miette = { workspace = true, features = ["fancy", "fancy-base"] }
+miette = { workspace = true, features = ["fancy"] }
 nanoid = { workspace = true }
 owo-colors = { workspace = true, features = ["supports-colors"] }
 serde = { workspace = true, features = ["derive"] }
