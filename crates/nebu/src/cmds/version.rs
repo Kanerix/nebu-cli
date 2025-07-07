@@ -59,7 +59,7 @@ impl From<VersionInfo> for clap::builder::Str {
     }
 }
 
-pub(crate) fn run(global_args: Box<crate::GlobalArgs>) {
+pub(crate) fn run(global_args: Box<crate::GlobalArgs>) -> crate::error::Result {
     tracing::trace!("running version command");
     tracing::trace!("reading version information from build variables");
 
@@ -101,5 +101,7 @@ pub(crate) fn run(global_args: Box<crate::GlobalArgs>) {
                 .expect("Failed to serialize JSON schema");
             println!("{}", out)
         }
-    }
+    };
+
+    Ok(())
 }

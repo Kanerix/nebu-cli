@@ -4,7 +4,10 @@ use clap::{Parser, crate_authors, crate_version};
 use clap_cargo::style::CLAP_STYLING;
 use tracing_subscriber::EnvFilter;
 
+use crate::error::CommandError;
+
 mod cmds;
+mod error;
 
 #[derive(Parser)]
 #[command(
@@ -32,17 +35,17 @@ enum Commands {
     /// Show the version of the CLI
     Version,
     /// Environment subcommands
-    ///
+    /// 
     /// Can be used to check the environment configuration or perform other
     /// environment-related tasks.
     Env(cmds::env::Env),
     /// Project subcommands
-    ///
+    /// 
     /// Creates new project, manage existing projects, or perform other
     /// project-related tasks.
     Project(cmds::project::Project),
     /// Infrastructure subcommands
-    ///
+    /// 
     /// Manage infrastructure resources, such as key vaults, databases and more.
     Infra,
 }
@@ -51,11 +54,10 @@ enum Commands {
 #[command(next_help_heading = "Global options", next_display_order = 1000)]
 struct GlobalArgs {
     /// Output format for the command results.
-    ///
+    /// 
     /// This is not supported by all commands, but the CLI will attempt to
-    /// format the output in the specified format if possible.
-    ///
-    /// This does not error if the format is not supported by the command.
+    /// format the output in the specified format if possible. This does not
+    /// error if the format is not supported by the command.
     #[arg(
         global = true,
         help = "Output format for the command results.",
@@ -67,7 +69,7 @@ struct GlobalArgs {
     format: OutputFormats,
 
     /// A path to the configuration file for nebu.
-    ///
+    /// 
     /// This will default to `~/.config/nebu` if not specified.
     #[arg(
         global = true,
@@ -79,7 +81,7 @@ struct GlobalArgs {
     config_path: PathBuf,
 
     /// A path to the home directory for nebu.
-    ///     
+    /// 
     /// This will default to `~/.nebu` if not specified.
     #[arg(
         global = true,
@@ -92,10 +94,10 @@ struct GlobalArgs {
     home_path: PathBuf,
 
     /// Enable verbose output.
-    ///
+    /// 
     /// This will enable more detailed logging output, which can be useful for
     /// debugging. The maximum verbosity is level 3 (TRACE).
-    ///
+    /// 
     /// ### Levels:
     /// - 0: No verbose output
     /// - 1: Info level output
@@ -103,8 +105,8 @@ struct GlobalArgs {
     /// - 3: Trace level output
     /// 
     /// This uses the `RUST_LOG` environment variable to set the logging level.
-    /// That means if the `RUST_LOG` environment variable is set, it will override
-    /// the verbosity level set by this argument.
+    /// That means if the `RUST_LOG` environment variable is set, it will
+    /// override the verbosity level set by this argument.
     #[arg(
         global = true,
         help = "Enable verbose output. Use multiple times for more verbosity.",
@@ -153,18 +155,23 @@ async fn main() -> ExitCode {
 
     if std::env::var("RUST_LOG").is_ok() && cli.global_args.verbose > 0 {
         tracing::warn!(
-            "RUST_LOG environment variable is set, this will override the \
+            "RUST_LOG environment variable is present; this will override the \
             verbosity level set by the -v flag."
         );
     }
 
-    use cmds::*;
-    match cli.command {
-        Commands::Version => version::run(cli.global_args),
+    let res = match cli.command {
+        Commands::Version => cmds::version::run(cli.global_args),
         Commands::Env(_env) => todo!(),
-        Commands::Project(project) => project::run(project, cli.global_args),
+        Commands::Project(project) => cmds::project::run(project, cli.global_args),
         Commands::Infra => todo!(),
     };
+
+    if let Err(err) = res {
+        tracing::error!("command failed: {}", err);
+        eprintln!("{:?}", err);
+        return ExitCode::FAILURE; 
+    }
 
     ExitCode::SUCCESS
 }
