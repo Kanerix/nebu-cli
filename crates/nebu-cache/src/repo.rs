@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use git2::{FetchOptions, Repository};
+use git2::Repository;
 
 use crate::Refresh;
 use crate::error::Result;
@@ -21,14 +21,31 @@ impl Refresh for RepoCache {
             return false;
         }
 
-        let repo = Repository::open(location).unwrap_or_default();
-
-        let remote = match repo.find_remote("origin") {
-            Ok(remote) => remote,
-            Err(_) => return false,
+        let repo = if let Ok(repo) = Repository::open(location) {
+            repo
+        } else {
+            return false;
         };
 
-        let fetch = remote.fetch(&[], Some(FetchOptions::), None);
+        let head = if let Ok(head) = repo.head() {
+            head
+        } else {
+            return false;
+        };
+
+        if !head.is_branch() {
+            return false
+        }
+
+        let remote = if let Ok(remote) = repo.find_remote("origin") {
+            remote
+        } else {
+            return false;
+        };
+
+        let current_branch = repo.branch_upstream_remote("/ref/head/main");
+
+        // let fetch = remote.fetch(&[], None, None);
 
         true
     }
