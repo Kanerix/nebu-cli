@@ -36,19 +36,19 @@ pub(crate) struct CommandError {
 
 #[derive(Error, Diagnostic, Debug)]
 pub(crate) enum CommandErrorKind {
-    /// Something is wrong with the command arguments.
-    #[error("invalid argument: {arg}={value}")]
-    #[diagnostic(
-        code(command::invalid_argument),
-        help("Check the argument and ensure it is valid"),
-        url("https://nebu.lerpz.com/docs/cli/commands#arguments")
-    )]
-    InvalidArgument {
-        arg: String,
-        value: String,
-        #[label("invalid argument")]
-        span: Option<SourceSpan>,
-    },
+    // /// Something is wrong with the command arguments.
+    // #[error("invalid argument: {arg}={value}")]
+    // #[diagnostic(
+    //     code(command::invalid_argument),
+    //     help("Check the argument and ensure it is valid"),
+    //     url("https://nebu.lerpz.com/docs/cli/commands#arguments")
+    // )]
+    // InvalidArgument {
+    //     arg: String,
+    //     value: String,
+    //     #[label("invalid argument")]
+    //     span: Option<SourceSpan>,
+    // },
     /// All other errors that do not fit into a specific category.
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -65,25 +65,25 @@ impl CommandError {
         }
     }
 
-    pub(crate) fn exit_code(&self) -> u32 {
-        self.exit_code
-    }
+    // pub(crate) fn exit_code(&self) -> u32 {
+    //     self.exit_code
+    // }
 
-    pub(crate) fn with_source_context(
-        mut self,
-        name: impl Into<String>,
-        code: impl Into<String>,
-        span: impl Into<SourceSpan>,
-    ) -> Self {
-        self.source_code = Some(NamedSource::new(name.into(), code.into()));
-        self.source_span = Some(span.into());
-        self
-    }
+    // pub(crate) fn with_source_context(
+    //     mut self,
+    //     name: impl Into<String>,
+    //     code: impl Into<String>,
+    //     span: impl Into<SourceSpan>,
+    // ) -> Self {
+    //     self.source_code = Some(NamedSource::new(name.into(), code.into()));
+    //     self.source_span = Some(span.into());
+    //     self
+    // }
 
-    pub(crate) fn with_related(mut self, related: CommandErrorKind) -> Self {
-        self.related.push(related);
-        self
-    }
+    // pub(crate) fn with_related(mut self, related: CommandErrorKind) -> Self {
+    //     self.related.push(related);
+    //     self
+    // }
 
     pub(crate) fn from_err<E>(err: E) -> Self
     where

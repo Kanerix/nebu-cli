@@ -29,8 +29,8 @@ pub(crate) struct ProjectArgs {
     pub template_repo: String,
 }
 
-pub fn run(project: Project, global_args: Box<crate::GlobalArgs>) -> crate::error::CommandResult {
+pub async fn run(project: Project, global_args: Box<crate::GlobalArgs>) -> crate::error::CommandResult {
     match project.command {
-        ProjectCmds::Init => project::init::run(global_args, project.args),
+        ProjectCmds::Init => project::init::run(global_args, project.args).await,
     }
 }

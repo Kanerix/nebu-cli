@@ -704,10 +704,12 @@ dependencies = [
  "miette",
  "nanoid",
  "nebu-cache",
+ "nebu-fs",
  "owo-colors",
  "schemars",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -720,6 +722,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "console 0.16.0",
+ "git2",
  "miette",
  "owo-colors",
  "rayon",
@@ -736,6 +739,13 @@ name = "nebu-config"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "nebu-fs"
+version = "0.1.0"
+dependencies = [
+ "home",
 ]
 
 [[package]]

@@ -3,7 +3,7 @@ use std::fmt;
 use owo_colors::OwoColorize;
 use serde::Serialize;
 
-use crate::{OutputFormats, cmds};
+use crate::{OutputFormats, cmds, error::CommandError};
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -78,7 +78,7 @@ pub(crate) fn run(global_args: Box<crate::GlobalArgs>) -> crate::error::CommandR
                 }),
         });
 
-    let version_info = VersionInfo {
+    let version = VersionInfo {
         version: env!("CARGO_PKG_VERSION"),
         commit_info,
     };
@@ -87,19 +87,17 @@ pub(crate) fn run(global_args: Box<crate::GlobalArgs>) -> crate::error::CommandR
 
     match global_args.format {
         OutputFormats::Json => {
-            let out = serde_json::to_string_pretty(&version_info)
-                .expect("Failed to serialize version info to JSON");
-            println!("{}", out);
+            let out = serde_json::to_string_pretty(&version).map_err(CommandError::from_err)?;
+            println!("{out}");
         }
         OutputFormats::Text => {
-            println!("{}", version_info);
+            println!("{version}");
         }
         #[cfg(feature = "schema")]
         OutputFormats::JsonSchema => {
             let schema = schemars::schema_for!(cmds::version::VersionInfo);
-            let out = serde_json::to_string_pretty(&schema)
-                .expect("Failed to serialize JSON schema");
-            println!("{}", out)
+            let out = serde_json::to_string_pretty(&schema).map_err(CommandError::from_err)?;
+            println!("{out}")
         }
     };
 

@@ -28,22 +28,22 @@ struct Cli {
 }
 
 #[derive(clap::Subcommand)]
-#[command(next_help_heading = "Commands", next_display_order = 1)]
+#[command(next_help_heading = "Commands", next_display_order = 2)]
 enum Commands {
     /// Show the version of the CLI
     Version,
     /// Environment subcommands
-    /// 
+    ///
     /// Can be used to check the environment configuration or perform other
     /// environment-related tasks.
     Env(cmds::env::Env),
     /// Project subcommands
-    /// 
+    ///
     /// Creates new project, manage existing projects, or perform other
     /// project-related tasks.
     Project(cmds::project::Project),
     /// Infrastructure subcommands
-    /// 
+    ///
     /// Manage infrastructure resources, such as key vaults, databases and more.
     Infra,
 }
@@ -52,7 +52,7 @@ enum Commands {
 #[command(next_help_heading = "Global options", next_display_order = 1000)]
 struct GlobalArgs {
     /// Output format for the command results.
-    /// 
+    ///
     /// This is not supported by all commands, but the CLI will attempt to
     /// format the output in the specified format if possible. This does not
     /// error if the format is not supported by the command.
@@ -62,46 +62,48 @@ struct GlobalArgs {
         short = 'F',
         long,
         env = "NEBU_OUTPUT_FORMAT",
-        default_value = OutputFormats::default()
+        default_value = OutputFormats::default(),
+        verbatim_doc_comment,
     )]
     format: OutputFormats,
 
-    /// A path to the configuration file for nebu.
-    /// 
-    /// This will default to `~/.config/nebu` if not specified.
+    /// Path to the configuration directory for nebu.
+    ///
+    /// This will default to `~/.config/nebu` if not specified, where `~` is the
+    /// user's home directory.
     #[arg(
         global = true,
-        help = "Path to the configuration file for nebu.",
         long,
         env = "NEBU_CONFIG_PATH",
-        default_value = "~/.config/nebu"
+        default_value = "~/.config/nebu",
+        verbatim_doc_comment,
     )]
     config_path: PathBuf,
 
-    /// A path to the home directory for nebu.
-    /// 
-    /// This will default to `~/.nebu` if not specified.
+    /// Path to the cache directory for nebu.
+    ///
+    /// This will default to `~/.nebu` if not specified, where `~` is the user's
+    /// home directory.
     #[arg(
         global = true,
-        help = "Path to the home directory for nebu.",
-        hide = true,
         long,
-        env = "NEBU_HOME_PATH",
-        default_value = "~/.nebu"
+        env = "NEBU_CACHE_PATH",
+        default_value = "~/.nebu",
+        verbatim_doc_comment,
     )]
-    home_path: PathBuf,
+    cache_path: PathBuf,
 
     /// Enable verbose output.
-    /// 
+    ///
     /// This will enable more detailed logging output, which can be useful for
     /// debugging. The maximum verbosity is level 3 (TRACE).
-    /// 
-    /// ### Levels:
+    ///
+    /// Levels:
     /// - 0: No verbose output
     /// - 1: Info level output
     /// - 2: Debug level output
     /// - 3: Trace level output
-    /// 
+    ///
     /// This uses the `RUST_LOG` environment variable to set the logging level.
     /// That means if the `RUST_LOG` environment variable is set, it will
     /// override the verbosity level set by this argument.
@@ -111,6 +113,7 @@ struct GlobalArgs {
         short = 'v',
         env = "NEBU_VERBOSE",
         action = clap::ArgAction::Count,
+        verbatim_doc_comment,
     )]
     verbose: u8,
 }
@@ -135,9 +138,18 @@ impl From<OutputFormats> for clap::builder::OsStr {
     }
 }
 
+fn expand_dir(path: &PathBuf) -> miette::Result<PathBuf> {
+    nebu_fs::expand_home_dir(path).ok_or_else(|| {
+        miette::miette!("Failed to expand home directory for path: {}", path.display())
+    })
+}
+
 #[tokio::main]
 async fn main() -> miette::Result<()> {
-    let cli = Cli::parse();
+    let mut cli = Cli::parse();
+
+    cli.global_args.cache_path = expand_dir(&cli.global_args.cache_path)?;
+    cli.global_args.config_path = expand_dir(&cli.global_args.config_path)?;
 
     tracing_subscriber::fmt()
         .without_time()
@@ -161,12 +173,12 @@ async fn main() -> miette::Result<()> {
     let result = match cli.command {
         Commands::Version => cmds::version::run(cli.global_args),
         Commands::Env(_env) => todo!(),
-        Commands::Project(project) => cmds::project::run(project, cli.global_args),
+        Commands::Project(project) => cmds::project::run(project, cli.global_args).await,
         Commands::Infra => todo!(),
     };
 
     if let Err(err) = result {
-        return Err(err.into())
+        return Err(err.into());
     };
 
     Ok(())
