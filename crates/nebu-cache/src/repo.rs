@@ -1,57 +1,84 @@
 use std::path::Path;
 
-use git2::Repository;
+use git2::{Cred, CredentialType, FetchOptions, Oid, RemoteCallbacks, Repository};
 
 use crate::Refresh;
 use crate::error::Result;
 
 pub struct RepoCache {
     pub repo: String,
+    pub branch: String,
+    pub remote: String,
 }
 
 impl RepoCache {
-    pub fn new(repo: impl Into<String>) -> Self {
-        RepoCache { repo: repo.into() }
+    pub fn new(
+        repo: impl Into<String>,
+        branch: impl Into<String>,
+        remote: impl Into<String>,
+    ) -> Self {
+        RepoCache {
+            repo: repo.into(),
+            branch: branch.into(),
+            remote: remote.into(),
+        }
+    }
+
+    pub fn get_local_and_remote_oids(&self, repo: &Repository) -> Result<(Oid, Oid)> {
+        let branch = repo.find_branch(&self.branch, git2::BranchType::Local)?;
+        let local_oid = branch.get().target().unwrap();
+
+        let upstream = branch.upstream()?;
+        let remote_oid = upstream.get().target().unwrap();
+
+        Ok((local_oid, remote_oid))
     }
 }
 
 impl Refresh for RepoCache {
-    fn is_fresh(&self, location: &Path) -> bool {
+    fn is_fresh(&self, location: &Path) -> Result<bool> {
         if !location.is_dir() {
-            return false;
+            return Ok(false);
         }
 
-        let repo = if let Ok(repo) = Repository::open(location) {
-            repo
-        } else {
-            return false;
-        };
+        let repo = Repository::open(&self.repo)?;
+        let (local_oid, remote_oid) = self.get_local_and_remote_oids(&repo)?;
+        let (ahead, behind) = repo.graph_ahead_behind(local_oid, remote_oid)?;
 
-        let head = if let Ok(head) = repo.head() {
-            head
-        } else {
-            return false;
-        };
-
-        if !head.is_branch() {
-            return false
+        if ahead > 0 || behind > 0 {
+            return Ok(false);
         }
 
-        let remote = if let Ok(remote) = repo.find_remote("origin") {
-            remote
-        } else {
-            return false;
-        };
-
-        let current_branch = repo.branch_upstream_remote("/ref/head/main");
-
-        // let fetch = remote.fetch(&[], None, None);
-
-        true
+        Ok(true)
     }
 
-    fn refresh_force(&mut self, location: &Path) -> Result<()> {
-        let _ = Repository::clone(&self.repo, "some path")?;
-        Ok(())
+    fn refresh(&mut self, location: &Path) -> Result<bool> {
+        let repo = Repository::open(location)?;
+        let mut remote = repo.find_remote(&self.remote)?;
+
+        let mut callbacks = RemoteCallbacks::new();
+
+        callbacks.credentials(|_, username, allowed_types| {
+            if let Some(username) = username
+                && allowed_types.contains(CredentialType::SSH_CUSTOM)
+                && let Ok(cred) = Cred::ssh_key_from_agent(username)
+            {
+                return Ok(cred);
+            } else {
+                Cred::default()
+            }
+        });
+
+        let mut options = FetchOptions::new();
+        options.remote_callbacks(callbacks);
+
+        let refspecs = remote.fetch_refspecs()?;
+        let collect = refspecs
+            .iter()
+            .map(|refspec| refspec.unwrap())
+            .collect::<Vec<_>>();
+        remote.fetch(&collect, Some(&mut options), None)?;
+
+        Ok(true)
     }
 }

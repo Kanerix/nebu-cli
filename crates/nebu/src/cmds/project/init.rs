@@ -1,9 +1,18 @@
-use dialoguer::{Confirm, theme::ColorfulTheme};
+use clap::Args;
 use nebu_cache::{CacheManager, RepoCache};
-// use nebu_cache::Cache;
 use owo_colors::OwoColorize;
 
 use crate::error::CommandError;
+
+#[derive(Args)]
+struct ProjectInitArgs {
+    /// URL of the repository to use as a template.
+    repo_url: String,
+    /// Branch of the repository to use.
+    repo_branch: String,
+    /// Origin of the repository to use.
+    repo_origin: String,
+}
 
 pub async fn run(
     global_args: Box<crate::GlobalArgs>,
@@ -12,7 +21,7 @@ pub async fn run(
     tracing::trace!("running project init command");
 
     let cache_path = global_args.cache_path;
-    let cache_repo = RepoCache::new(&project_args.template_repo);
+    let cache_repo = RepoCache::new(&project_args.template_repo, "main", "origin");
     let mut cache_manager = CacheManager::new(cache_path, cache_repo);
     cache_manager.refresh().map_err(CommandError::from_err)?;
 

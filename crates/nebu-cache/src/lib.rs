@@ -9,15 +9,21 @@ mod repo;
 /// Trait for refreshing cached data.
 pub trait Refresh {
     /// Check if the cached data is fresh at the given location.
-    fn is_fresh(&self, location: &Path) -> bool;
+    ///
+    /// This might error if the location is invalid or the data is corrupted.
+    fn is_fresh(&self, location: &Path) -> Result<bool>;
     /// Refresh the cached data, without checking if it is fresh.
-    fn refresh_force(&mut self, location: &Path) -> Result<()>;
+    ///
+    /// Returns `true` if the data was refreshed, `false` otherwise.
+    fn refresh(&mut self, location: &Path) -> Result<bool>;
     /// Refresh the cached data if it is not fresh.
-    fn refresh(&mut self, location: &Path) -> Result<()> {
-        if !self.is_fresh(location) {
-            self.refresh_force(location)
+    ///
+    /// Returns `true` if the data was refreshed, `false` otherwise.
+    fn try_refresh(&mut self, location: &Path) -> Result<bool> {
+        if !self.is_fresh(location)? {
+            self.refresh(location)
         } else {
-            Ok(())
+            Ok(false)
         }
     }
 }
@@ -42,12 +48,23 @@ where
     }
 
     /// Checks if the cache is fresh.
-    pub fn is_fresh(&self) -> bool {
-        self.inner.is_fresh(&self.location)
+    ///
+    /// Returns `true` if the data is fresh, `false` otherwise.
+    pub fn is_fresh(&self) -> Result<bool> {
+        Ok(self.inner.is_fresh(&self.location)?)
+    }
+
+    /// Refresh the cached data, without checking if it is fresh.
+    ///
+    /// Returns `true` if the data was refreshed, `false` otherwise.
+    pub fn refresh(&mut self) -> Result<bool> {
+        self.inner.refresh(&self.location)
     }
 
     /// Checks if the cache is fresh and refreshes it if not.
-    pub fn refresh(&mut self) -> Result<()> {
-        self.inner.refresh(&self.location)
+    ///
+    /// Returns `true` if the data was refreshed, `false` otherwise.
+    pub fn try_refresh(&mut self) -> Result<bool> {
+        self.inner.try_refresh(&self.location)
     }
 }
