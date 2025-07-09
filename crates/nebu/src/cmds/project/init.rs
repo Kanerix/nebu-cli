@@ -1,29 +1,24 @@
-use clap::Args;
 use nebu_cache::{CacheManager, RepoCache};
 use owo_colors::OwoColorize;
 
-use crate::error::CommandError;
-
-#[derive(Args)]
-struct ProjectInitArgs {
-    /// URL of the repository to use as a template.
-    repo_url: String,
-    /// Branch of the repository to use.
-    repo_branch: String,
-    /// Origin of the repository to use.
-    repo_origin: String,
-}
+use crate::{cmds::project::InitArgs, error::CommandError};
 
 pub async fn run(
     global_args: Box<crate::GlobalArgs>,
     project_args: super::ProjectArgs,
+    init_args: InitArgs,
 ) -> crate::error::CommandResult {
     tracing::trace!("running project init command");
 
     let cache_path = global_args.cache_path;
-    let cache_repo = RepoCache::new(&project_args.template_repo, "main", "origin");
-    let mut cache_manager = CacheManager::new(cache_path, cache_repo);
-    cache_manager.refresh().map_err(CommandError::from_err)?;
+    let cache_repo = RepoCache::new(
+        &init_args.repo_url,
+        &init_args.repo_branch,
+        &init_args.repo_remote,
+    );
+    CacheManager::new(cache_path, cache_repo)
+        .try_refresh()
+        .map_err(CommandError::from_err)?;
 
     // let theme = ColorfulTheme::default();
     // let _has_batch = Confirm::with_theme(&theme)

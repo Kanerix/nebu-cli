@@ -14,7 +14,35 @@ pub(crate) struct Project {
 
 #[derive(clap::Subcommand, Debug, Clone)]
 pub(crate) enum ProjectCmds {
-    Init,
+    Init(InitArgs),
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub(crate) struct InitArgs {
+    /// URL of the repository to use as a template.
+    #[arg(
+        short = 'u',
+        long,
+        default_value = "https://github.com/kanerix/nebu-cli.git",
+        env = "NEBU_TEMPLATE_REPO"
+    )]
+    repo_url: String,
+    /// Branch of the repository to use.
+    #[arg(
+        short = 'b',
+        long,
+        default_value = "main",
+        env = "NEBU_TEMPLATE_BRANCH"
+    )]
+    repo_branch: String,
+    #[arg(
+        short = 'r',
+        long,
+        default_value = "origin",
+        env = "NEBU_TEMPLATE_remote"
+    )]
+    /// Remote of the repository to use.
+    repo_remote: String,
 }
 
 #[derive(clap::Args, Debug, Clone)]
@@ -29,8 +57,13 @@ pub(crate) struct ProjectArgs {
     pub template_repo: String,
 }
 
-pub async fn run(project: Project, global_args: Box<crate::GlobalArgs>) -> crate::error::CommandResult {
+pub(crate) async fn run(
+    project: Project,
+    global_args: Box<crate::GlobalArgs>,
+) -> crate::error::CommandResult {
     match project.command {
-        ProjectCmds::Init => project::init::run(global_args, project.args).await,
+        ProjectCmds::Init(init_args) => {
+            project::init::run(global_args, project.args, init_args).await
+        }
     }
 }

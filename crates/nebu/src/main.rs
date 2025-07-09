@@ -58,7 +58,6 @@ struct GlobalArgs {
     /// error if the format is not supported by the command.
     #[arg(
         global = true,
-        help = "Output format for the command results.",
         short = 'F',
         long,
         env = "NEBU_OUTPUT_FORMAT",
