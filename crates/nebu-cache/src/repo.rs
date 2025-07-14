@@ -1,11 +1,14 @@
 use std::path::Path;
 
-use git2::build::CheckoutBuilder;
-use git2::{BranchType, Cred, CredentialType, FetchOptions, Oid, RemoteCallbacks, Repository};
+use git2::build::{CheckoutBuilder, RepoBuilder};
+use git2::{
+    BranchType, Config, Cred, CredentialHelper, CredentialType, FetchOptions, Oid, RemoteCallbacks, Repository
+};
 
 use crate::Refresh;
 use crate::error::Result;
 
+#[derive(Debug, Clone, Hash)]
 pub struct RepoCache {
     pub repo: String,
     pub branch: String,
@@ -41,6 +44,70 @@ impl RepoCache {
 
         Ok((local_oid, remote_oid))
     }
+
+    /// Returns a RemoteCallbacks instance that handles authentication.
+    pub fn get_callbacks<'a>() -> RemoteCallbacks<'a> {
+        let mut callbacks = RemoteCallbacks::new();
+        callbacks.credentials(|url, username, allowed_types| {
+            // Prepare the authentication callbacks.
+            //
+            // We check the `allowed` types of credentials, and we try to do as much as
+            // possible based on that:
+            //
+            // * Prioritize SSH keys from the local ssh agent as they're likely the most
+            //   reliable. The username here is prioritized from the credential
+            //   callback, then from whatever is configured in git itself, and finally
+            //   we fall back to the generic user of `git`.
+            //
+            // * If a username/password is allowed, then we fallback to git2-rs's
+            //   implementation of the credential helper. This is what is configured
+            //   with `credential.helper` in git, and is the interface for the OSX
+            //   keychain, for example.
+            //
+            // * After the above two have failed, we just kinda grapple attempting to
+            //   return *something*.
+            let mut cred_helper = CredentialHelper::new(url);
+            let cfg = &Config::open_default()?;
+            cred_helper.config(cfg);
+            if allowed_types.contains(CredentialType::SSH_KEY) {
+                let mut attempts = vec![String::from("git")];
+                if let Some(s) = cred_helper.username {
+                    attempts.push(s);
+                }
+
+                while let Some(s) = attempts.pop() {
+                    return git2::Cred::ssh_key_from_agent(&s);
+                }
+            }
+
+            if allowed_types.contains(CredentialType::USER_PASS_PLAINTEXT) {
+                let username = username.unwrap_or("git");
+                return Cred::userpass_plaintext(username, "");
+            }
+
+
+            if allowed_types.contains(CredentialType::DEFAULT) {
+                return Cred::default()
+            }
+
+            Err(git2::Error::from_str("no suitable credentials found"))
+        });
+        callbacks
+    }
+
+    /// Clones the repository to the specified location.
+    ///
+    /// This adds remote callbacks to handle authentication and fetch options.
+    pub fn clone_repository(
+        &self,
+        location: &Path,
+    ) -> std::result::Result<Repository, git2::Error> {
+        let mut builder = RepoBuilder::new();
+        let mut fetch_options = FetchOptions::new();
+        fetch_options.remote_callbacks(Self::get_callbacks());
+        builder.fetch_options(fetch_options);
+        builder.clone(&self.repo, location)
+    }
 }
 
 impl Refresh for RepoCache {
@@ -53,7 +120,7 @@ impl Refresh for RepoCache {
             Ok(repo) => Ok(repo),
             Err(err) => {
                 if err.code() == git2::ErrorCode::NotFound {
-                    return Ok(false)
+                    return Ok(false);
                 } else {
                     Err(err)
                 }
@@ -79,7 +146,7 @@ impl Refresh for RepoCache {
             Ok(repo) => Ok(repo),
             Err(err) => {
                 if err.code() == git2::ErrorCode::NotFound {
-                    Repository::clone(&self.repo, location)
+                    self.clone_repository(location)
                 } else {
                     Err(err)
                 }
@@ -88,18 +155,7 @@ impl Refresh for RepoCache {
 
         let mut remote = repo.find_remote(&self.remote)?;
 
-        let mut callbacks = RemoteCallbacks::new();
-        callbacks.credentials(|_, username, allowed_types| {
-            if allowed_types.contains(CredentialType::SSH_CUSTOM)
-                && let Some(username) = username
-                && let Ok(cred) = Cred::ssh_key_from_agent(username)
-            {
-                return Ok(cred);
-            } else {
-                Cred::default()
-            }
-        });
-
+        let callbacks = RepoCache::get_callbacks();
         let mut options = FetchOptions::new();
         options.remote_callbacks(callbacks);
 
@@ -115,7 +171,10 @@ impl Refresh for RepoCache {
 
         let analysis = repo.merge_analysis(&[&fetch_commit])?;
         if analysis.0.is_fast_forward() {
-            let refname = &format!("refs/heads/{}", self.branch);
+            let head = repo.head()?;
+            let refname = head
+                .name()
+                .ok_or(git2::Error::from_str("No HEAD reference found"))?;
             let mut reference = repo.find_reference(refname)?;
             reference.set_target(fetch_commit.id(), "Fast-forward")?;
             repo.set_head(refname)?;
