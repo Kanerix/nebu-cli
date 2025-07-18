@@ -1,0 +1,76 @@
+components:
+  - id: 'nextjs'
+    description: 'NextJS frontend application'
+    kind: 'folder'
+    aliases:
+      - 'nextjs'
+      - 'frontend'
+    targets:
+      - kind: 'folder'
+        path: 'packages/[frontend]'
+
+  - id: 'fastapi'
+    description: 'FastAPI backend application'
+    kind: 'folder'
+    aliases:
+      - 'backend'
+      - 'restapi'
+      - 'fastapi'
+    targets:
+      - kind: 'folder'
+        path: 'packages/[backend]'
+
+  - id: 'batch'
+    description: 'Python batch job'
+    kind: 'folder'
+    aliases:
+      - 'batch'
+      - 'job'
+      - 'prefect'
+    targets:
+      - kind: 'folder'
+        path: 'packages/[batch]'
+
+questions:
+  - prompt: 'What is the name of the project?'
+    kind: 'string'
+    default: 'my_project'
+    actions:
+      - kind: 'replace_content'
+
+  - prompt: 'Do you want a NextJS frontend?'
+    kind: 'boolean'
+    default: true
+    component: 'nextjs'
+    actions:
+      - kind: 'include_folder'
+    subquestions:
+      - prompt: 'What is the name of the NextJS app?'
+        kind: 'string'
+        default: 'frontend'
+
+  - prompt: 'Do you want a FastAPI backend?'
+    kind: 'boolean'
+    default: true
+    component: 'fastapi'
+    actions:
+      - kind: 'include_folder'
+    subquestions:
+      - prompt: 'What is the name of the FastAPI app?'
+        kind: 'string'
+        default: 'backend'
+
+  - prompt: 'Do you want a python batch job?'
+    kind: 'boolean'
+    default: true
+    component: 'batch'
+    actions:
+      - kind: 'include_folder'
+    subquestions:
+      - prompt: 'What is the name of the python batch job?'
+        kind: 'string'
+        default: 'batch'
+
+  - prompt: 'Do you want to add yourself as a maintainer?'
+    default: true
+    kind: 'boolean'
