@@ -3,7 +3,7 @@ use std::fmt;
 use owo_colors::OwoColorize;
 use serde::Serialize;
 
-use crate::{OutputFormats, cmds, error::CommandError};
+use crate::{GlobalArgs, OutputFormats, error::CommandResult};
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -59,9 +59,8 @@ impl From<VersionInfo> for clap::builder::Str {
     }
 }
 
-pub(crate) fn run(global_args: Box<crate::GlobalArgs>) -> crate::error::CommandResult {
+pub(crate) fn run(global_args: Box<GlobalArgs>) -> CommandResult {
     tracing::trace!("running version command");
-    tracing::trace!("reading version information from build variables");
 
     let commit_info = option_env!("NEBU_COMMIT_HASH")
         .zip(option_env!("NEBU_COMMIT_SHORT_HASH"))
@@ -86,18 +85,18 @@ pub(crate) fn run(global_args: Box<crate::GlobalArgs>) -> crate::error::CommandR
     tracing::trace!("creating output for version information");
 
     match global_args.format {
-        OutputFormats::Json => {
-            let out = serde_json::to_string_pretty(&version).map_err(CommandError::from_err)?;
-            println!("{out}");
-        }
         OutputFormats::Text => {
             println!("{version}");
         }
+        OutputFormats::Json => {
+            let json = serde_json::to_string_pretty(&version)?;
+            println!("{json}");
+        }
         #[cfg(feature = "schema")]
         OutputFormats::JsonSchema => {
-            let schema = schemars::schema_for!(cmds::version::VersionInfo);
-            let out = serde_json::to_string_pretty(&schema).map_err(CommandError::from_err)?;
-            println!("{out}")
+            let schema = schemars::schema_for!(VersionInfo);
+            let json = serde_json::to_string_pretty(&schema)?;
+            println!("{json}")
         }
     };
 

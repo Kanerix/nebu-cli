@@ -177,7 +177,7 @@ async fn main() -> miette::Result<()> {
     };
 
     if let Err(err) = result {
-        return Err(err.into());
+        return Err(err.inner.into());
     };
 
     Ok(())
